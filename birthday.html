@@ -1,18 +1,17 @@
 <html>
 
   <head>
-    <style>
-      html{ margin:0px; padding:0px; overflow:hidden; background:#000 }
-      body{ margin:0px; padding:0px; overflow:hidden; background:#000 }
-      @font-face {
-        font-family: "GeoSans";
-        src: url("lib/GeosansLight.ttf");
-      }
-    </style>
+    <link rel="stylesheet" type="text/css" href="lib/main.css" />
+
+    <link href="favicon.ico" rel="icon" type="image/x-icon" />
+
+    <meta itemprop="name" content="Happy Birthday Three.js"/> 
+    <meta name="description" content="Happy Birthday Three.js"/> 
   </head>
 
   <body>
 
+    <script src="lib/jquery.min.js"></script>
     <script src="lib/three.min.js"></script>
     <script src="lib/TrackballControls.js"></script>
     <script src="lib/TextCreator.js"></script>
@@ -513,6 +512,17 @@ float snoise(vec4 v)
 
     <script>
 
+      var sm = [
+
+      ["Audio - Polar Regress", "soundcloud_1.png" , 'https://soundcloud.com/cabbibo/polar-regress'],
+      ["Share on Twitter" ,"twitter_1.png" , "http://twitter.com/share?text=Happy%20Birthday%20Three.js%20Thanks%20@mrdoob%20@alteredqualia%20@graphicsnoob%20@benatexocortex%20and%20many,%20many%20others&url=http://cabbibo.github.io/shaders/birthday.html"],
+
+      ["Share on Facebook", "facebook_1.png" , 'http://www.facebook.com/sharer.php?u=http://cabbibo.github.io/shaders/birthday.html'],
+       ["Threejs.org" ,"info_1.png" , "http://threejs.org"],
+      ]
+
+        
+      addSocial( sm );
 
      
 
@@ -535,9 +545,8 @@ float snoise(vec4 v)
       var time = { type:"f",value:0}
       stream.play();
       
-      window.setTimeout( init , 1000 ); 
-      window.setTimeout( animate , 1000 ); 
-      
+      init();
+      animate();
       function init(){
 
         clock = new THREE.Clock();
@@ -722,6 +731,67 @@ float snoise(vec4 v)
       }
 
 
+       function addSocial( smArray ){
+
+        this.social = document.createElement('div');
+        this.social.id = 'social';
+        document.body.appendChild( this.social );
+
+        window.titleEP  = document.createElement('a');
+        window.titleEP.href = 'http://threejs.org';
+        window.titleEP.target = '_blank';
+        window.titleEP.id = 'titleEP';
+        window.titleEP.innerHTML = 'Happy Birthday Three.js';
+
+
+        this.social.appendChild( window.titleEP  );
+
+        for( var i  = 0; i < smArray.length; i ++ ){
+
+          var a = document.createElement('a');
+
+          if( i != smArray.length -1 ){
+            a.href = smArray[i][2];
+            if( i != 0 )
+              a.target = '_blank';
+          }else{
+            a.onClick = "function(){ console.log('hello')}";
+            a.id = "information"
+          }
+
+
+
+          a.style.background = 'url( icons/'+smArray[i][1]+')';
+          a.style.backgroundSize = '100%';
+          a.style.backgroundSize ="25px";
+          a.style.backgroundPosition="center";
+          a.style.backgroundRepeat="no-repeat";
+          a.className += 'social';
+          a.INFO_TEXT = smArray[i][0];
+
+          this.social.appendChild( a );
+
+        }
+
+      }
+
+      $('.social').hover( function( e ){
+
+        //console.log( e );
+
+        if( e.type == 'mouseenter' ){
+
+          titleEP.innerHTML = e.toElement.INFO_TEXT;
+
+        }else{
+
+          titleEP.innerHTML = 'Happy Birthday three.js';
+          
+
+        }
+
+
+      });
 
     </script>
 
