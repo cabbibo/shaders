@@ -1,0 +1,465 @@
+<html>
+
+  <head>
+    <style>
+      #container{ position:absolute; left:0px; top:0px; }
+      body{ margin:0px; }
+    </style>
+  </head>
+
+  <body>
+
+    <script src="GPGPU.js"></script>
+    <script src="three.min.js"></script>
+    <script src="TrackballControls.js"></script>
+
+    <script id="vs-texturePass" type="x-shader/x-vertex">
+
+      varying vec2 vUv;
+      
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+      }
+
+    </script>
+    
+    <script id="fs-texturePass" type="x-shader/x-fragment">
+
+      uniform sampler2D texture;
+      varying vec2 vUv;
+      void main(){
+        vec4 c = texture2D( texture , vUv );
+        gl_FragColor = c;
+      }
+    
+    </script>
+
+    <script id="vs-simulation" type="x-shader/x-vertex">
+
+      varying vec2 vUv;
+      
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+      }
+
+    </script>
+    <script id="fs-simulation" type="x-shader/x-fragment">
+
+      uniform sampler2D t_oPos;
+      uniform sampler2D t_pos;
+      uniform sampler2D t_toPos;
+      uniform sampler2D t_fromPos;
+      varying vec2 vUv;
+      void main(){
+
+        vec3 oPos = texture2D( t_oPos , vUv ).xyz;
+        vec3 pos  = texture2D( t_pos , vUv ).xyz;
+
+        vec3 toPos = texture2D( t_toPos , vUv ).xyz;
+        vec3 fromPos = texture2D( t_fromPos , vUv ).xyz;
+
+
+        float direction = texture2D( t_pos , vUv ).w;
+
+        vec3 dif;
+
+        if( direction == 1.0 ){
+          dif = toPos - pos;
+        }
+
+        if( direction == -1.0 ){
+          dif = fromPos - pos;
+        }
+
+        
+        vec3 sVel = pos - oPos;
+
+        float lv = length( sVel );
+
+        vec3 acc = normalize( dif );
+
+        vec3 vel = sVel + acc;
+
+        vec3 newPos = pos + vel * .9;
+
+
+        float l = length( dif );
+
+        if( l < 5.0 ){
+
+          direction *= -1.;
+
+        }
+        
+
+        gl_FragColor = vec4( newPos , direction );
+
+      }
+    
+    </script>
+    
+    <script id="vs-render" type="x-shader/x-vertex">
+
+      uniform sampler2D finalPos;
+      void main(){
+
+        vec3 pos = texture2D( finalPos , position.xy ).xyz;
+        vec4 mvPos = modelViewMatrix * vec4( pos , 1.0 );
+        gl_Position = projectionMatrix * mvPos;
+
+      }
+
+
+    </script>
+    <script id="fs-render" type="x-shader/x-fragment">
+    
+      void main(){
+        gl_FragColor = vec4( 1.0 , 1.0 , 1.0 , 1.0 ); 
+      }
+    
+    </script>
+
+    <script>
+
+
+
+      var camera, renderer, scene , controls;
+      
+      var vs, fs;
+
+      var size , gpgpu;
+
+      var rt1 , rt2 , rt3;
+
+      var texturePassShader, simulationShader;
+
+      var particleSystem;
+      var counter;
+
+      var geometry, material , light;
+
+
+
+      init();
+      animate();
+      function init(){
+
+        /*
+
+          THREE.js Initialization
+
+        */
+
+        var w = window.innerWidth;
+        var h = window.innerHeight;
+
+        camera = new THREE.PerspectiveCamera( 65 , w/h , 1 , 2000 );
+        camera.position.z = 100;
+
+        controls = new THREE.TrackballControls( camera );
+        scene = new THREE.Scene();
+
+        renderer = new THREE.WebGLRenderer();
+        renderer.setSize( window.innerWidth, window.innerHeight );
+
+        document.body.appendChild( renderer.domElement );
+
+
+        size = 512;
+
+
+        gpgpu = new GPGPU( renderer );
+
+        /*
+
+          Setting up simulation shader
+
+          */
+
+
+        rt1 = new THREE.WebGLRenderTarget( size, size, {
+          minFilter: THREE.NearestFilter,
+          magFilter: THREE.NearestFilter,
+          format: THREE.RGBAFormat,
+          type:THREE.FloatType,
+          stencilBuffer: false
+        });
+
+        rt2 = rt1.clone();
+        rt3 = rt1.clone();
+
+        counter = 0;
+
+
+        createDebugMeshes();
+
+
+        /*
+
+          Set up texturePassShader
+
+        */
+
+
+        vs = document.getElementById('vs-texturePass').textContent;
+        fs = document.getElementById('fs-texturePass').textContent;
+
+        var uniforms = {
+          texture:{ type:"t" , value:null },
+        }
+
+        texturePassShader = new THREE.ShaderMaterial({
+
+          uniforms:uniforms,
+          vertexShader: vs,
+          fragmentShader: fs,
+
+        });
+
+        /*
+
+          Set up simulation shader
+
+        */
+
+        vs = document.getElementById('vs-simulation').textContent;
+        fs = document.getElementById('fs-simulation').textContent;
+
+        var uniforms = {
+          t_oPos:{ type:"t" , value:null },
+          t_pos:{ type:"t" , value:null },
+          t_toPos:{ type:"t" , value:null },
+          t_fromPos:{ type:"t" , value:null },
+
+        }
+
+        simulationShader = new THREE.ShaderMaterial({
+
+          uniforms:uniforms,
+          vertexShader: vs,
+          fragmentShader: fs,
+
+        });
+
+
+
+        /*
+
+          Set up original Position texture
+
+        */
+
+        var geo = new THREE.IcosahedronGeometry( 100 , 3 );
+        var p = new THREE.Vector3( 300 , 0 , 0 );
+        var r = new THREE.Euler();
+        
+        fromTexture = createPositionsTexture( geo , size , p , r );
+
+        var geo = new THREE.CubeGeometry( 100 , 100  , 100);
+        
+        var p = new THREE.Vector3( -300 , 0 , 0 );
+        var r = new THREE.Euler();
+
+        toTexture = createPositionsTexture( geo , size , p , r );
+
+        simulationShader.uniforms.t_toPos.value = toTexture;
+        simulationShader.uniforms.t_fromPos.value = fromTexture;
+
+        resetTextures( fromTexture );
+
+
+        /*
+
+          Set up final Rendered Paricles
+
+        */
+        
+        var geo = new THREE.BufferGeometry();
+
+        geo.addAttribute( 'position', Float32Array , size * size , 3 );
+       
+        var positions = geo.attributes.position.array;
+
+        for ( var i = 0, j = 0, l = positions.length / 3; i < l; i ++, j += 3 ) {
+
+          positions[ j     ] = ( i % size ) / size;
+          positions[ j + 1 ] = Math.floor( i / size ) / size;
+          //positions[ j + 2 ] = Math.sin( (i / size) * Math.PI );
+
+        }
+        //geometry = new THREE.PlaneGeometry( 100 , 100 , 100 , 100 );
+
+        vs = document.getElementById('vs-render').textContent;
+        fs = document.getElementById('fs-render').textContent;
+
+        var uniforms = {
+          finalPos:{ type:"t" , value:null },
+        }
+
+        material = new THREE.ShaderMaterial({
+
+          uniforms:uniforms,
+          vertexShader: vs,
+          fragmentShader: fs,
+
+        });
+       
+        particleSystem = new THREE.ParticleSystem( geo , material );
+        scene.add( particleSystem );
+
+
+
+
+      }
+
+
+      function createPositionsTexture( geo , size , position , rotation ){
+
+        var geometry = new THREE.Geometry();
+
+        var tempMesh  = new THREE.Mesh( geo , new THREE.MeshBasicMaterial() );
+
+        tempMesh.position = position;
+        tempMesh.rotation = rotation;
+
+       // scene.add( tempMesh );
+
+        THREE.GeometryUtils.merge( geometry , tempMesh );
+
+        
+        var point = new THREE.Vector3();
+        var facesLength = geometry.faces.length;
+
+        var data = new Float32Array( size * size * 4 );
+
+        for ( var i = 0, l = data.length; i < l; i += 4 ) {
+
+          var face = geometry.faces[ Math.floor( Math.random() * facesLength ) ];
+
+          var vertex1 = geometry.vertices[ face.a ];
+          var vertex2 = geometry.vertices[ Math.random() > 0.5 ? face.b : face.c ];
+
+          point.subVectors( vertex2, vertex1 );
+          point.multiplyScalar( Math.random() );
+          point.add( vertex1 );
+
+          data[ i ] = point.x;
+          data[ i + 1 ] = point.y;
+          data[ i + 2 ] = point.z;
+          data[ i + 3 ] = 1;
+
+        }
+
+        var positionsTexture = new THREE.DataTexture(
+          data, 
+          size, 
+          size, 
+          THREE.RGBAFormat, 
+          THREE.FloatType 
+        );
+
+        positionsTexture.minFilter = THREE.NearestFilter;
+        positionsTexture.magFilter = THREE.NearestFilter;
+        positionsTexture.generateMipmaps = false;
+        positionsTexture.needsUpdate = true;
+
+        positionsTexture.mesh = tempMesh;
+
+        return positionsTexture;
+
+      }
+
+      function createDebugMeshes(){
+
+        var meshes = [];
+
+        var geo = new THREE.PlaneGeometry( 100 , 100 );
+          
+        var debugMesh = new THREE.Mesh( geo , new THREE.MeshBasicMaterial({
+          map: rt1
+        }));
+        debugMesh.position.set( -150 , 200 , 0 );
+        meshes.push( debugMesh );
+        scene.add( debugMesh );
+            
+        var debugMesh = new THREE.Mesh( geo , new THREE.MeshBasicMaterial({
+          map: rt2
+        }));
+        debugMesh.position.set( 0 , 200 , 0 );
+        meshes.push( debugMesh );
+        scene.add( debugMesh );
+
+        var debugMesh = new THREE.Mesh( geo , new THREE.MeshBasicMaterial({
+          map: rt3
+        }));
+        debugMesh.position.set( 150 , 200 , 0 );
+        meshes.push( debugMesh );
+        scene.add( debugMesh );
+
+        return meshes;
+
+      }
+
+
+      function resetTextures( texture ){
+
+        texturePassShader.uniforms.texture.value = texture;
+        gpgpu.pass( texturePassShader , rt1 );
+        gpgpu.pass( texturePassShader , rt2 );
+        gpgpu.pass( texturePassShader , rt3 );
+
+
+      }
+
+      function simulate(){
+
+        var flipFlop = counter % 3;
+
+
+        if( flipFlop == 0 ){
+
+          simulationShader.uniforms.t_oPos.value = rt1;
+          simulationShader.uniforms.t_pos.value = rt2;
+          gpgpu.pass( simulationShader , rt3 );
+
+          particleSystem.material.uniforms.finalPos.value = rt3;
+
+        }else if( flipFlop == 1 ){
+
+          simulationShader.uniforms.t_oPos.value = rt2;
+          simulationShader.uniforms.t_pos.value = rt3;
+          gpgpu.pass( simulationShader , rt1 );
+
+          particleSystem.material.uniforms.finalPos.value = rt1;
+
+
+        }else if( flipFlop == 2 ){
+
+          simulationShader.uniforms.t_oPos.value = rt3;
+          simulationShader.uniforms.t_pos.value = rt1;
+          gpgpu.pass( simulationShader , rt2 );
+
+          particleSystem.material.uniforms.finalPos.value = rt2;
+
+
+        }
+
+
+        counter ++;
+
+      }
+
+      function animate(){
+
+        simulate();
+        requestAnimationFrame( animate );
+        controls.update();
+        renderer.render( scene , camera );
+      }
+
+    </script>
+
+  </body>
+</html>

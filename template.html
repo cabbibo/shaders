@@ -1,0 +1,125 @@
+<html>
+
+  <head>
+    <style>
+      html{ margin:0px; overflow:hidden; background:#000 }
+      #container{ position:absolute; left:0px; top:0px; }
+    </style>
+  </head>
+
+  <body>
+
+    <script src="lib/three.min.js"></script>
+    <script src="lib/TrackballControls.js"></script>
+    
+    <script id="vs" type="x-shader/x-vertex">
+
+
+      void main(){
+
+        vec4 mvPos = modelViewMatrix * vec4( position, 1.0 );
+        gl_Position = projectionMatrix * mvPos;
+
+      }
+
+
+    </script>
+    <script id="fs" type="x-shader/x-fragment">
+
+      uniform vec3 color;
+
+      void main(){
+
+        gl_FragColor = vec4( color, 1.0 );
+
+      }
+
+    </script>
+
+    <script>
+
+
+      var uniforms = {
+
+        color:{ type:"c" , value:new THREE.Color( 0xc0ffee ) },
+      
+      }
+
+      var camera, renderer, scene , controls;
+      
+      var vs, fs;
+
+      var geometry, material , light;
+
+
+
+      init();
+      animate();
+      function init(){
+
+        var w = window.innerWidth;
+        var h = window.innerHeight;
+
+        camera = new THREE.PerspectiveCamera( 65 , w/h , 1 , 2000 );
+        camera.position.z = 1000;
+
+        controls = new THREE.TrackballControls( camera );
+        scene = new THREE.Scene();
+
+        light = new THREE.PointLight( 0xff00ff , 3 , 1000 );
+        light.position.set( 300 , 300 ,300 );
+        scene.add( light );
+
+        lightMarker = new THREE.Mesh( 
+          new THREE.IcosahedronGeometry( 10 , 1 ),
+          new THREE.MeshBasicMaterial({ color: light.color })
+        );
+        light.add( lightMarker );
+
+        geometry = new THREE.CubeGeometry( 200, 200, 200 );
+
+        vs = document.getElementById('vs').textContent;
+        fs = document.getElementById('fs').textContent;
+
+        
+        material = new THREE.ShaderMaterial({
+
+          uniforms:uniforms,
+          vertexShader: vs,
+          fragmentShader: fs,
+
+        });
+       
+        mesh = new THREE.Mesh( geometry, material );
+        scene.add( mesh );
+
+        renderer = new THREE.WebGLRenderer();
+        renderer.setSize( window.innerWidth, window.innerHeight );
+
+        document.body.appendChild( renderer.domElement );
+        window.addEventListener( 'resize', onResize , false );
+
+
+
+      }
+
+      function animate(){
+
+        requestAnimationFrame( animate );
+        controls.update();
+        renderer.render( scene , camera );
+      }
+     
+      function onResize() {
+        windowHalfX = window.innerWidth / 2;
+        windowHalfY = window.innerHeight / 2;
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      }
+
+
+    </script>
+
+  </body>
+</html>

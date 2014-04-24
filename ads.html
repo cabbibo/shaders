@@ -1,0 +1,184 @@
+<html>
+
+  <head>
+    <style>
+      body{ margin: 0px; }
+    </style>
+  </head>
+
+  <body>
+
+    <script src="three.min.js"></script>
+    <script src="TrackballControls.js"></script>
+    
+    <script id="vs" type="x-shader/x-vertex">
+
+      uniform vec3 ambientLightColor;
+      uniform vec3 diffuseLightColor;
+      uniform vec3 specularLightColor;
+
+      uniform vec3 ambientMaterialColor;
+      uniform vec3 diffuseMaterialColor;
+      uniform vec3 specularMaterialColor;
+
+      uniform vec3 lightPosition;
+      uniform float shininess;
+
+      varying vec3 vNorm;
+      varying vec3 vPos;
+
+
+      void main(){
+
+        vNorm = normal;
+        vPos  = position;
+
+
+        vec4 mvPos = modelViewMatrix * vec4( position, 1.0 );
+        gl_Position = projectionMatrix * mvPos;
+
+      }
+
+
+    </script>
+    <script id="fs" type="x-shader/x-fragment">
+
+      
+      uniform vec3 ambientLightColor;
+      uniform vec3 diffuseLightColor;
+      uniform vec3 specularLightColor;
+
+      uniform vec3 ambientMaterialColor;
+      uniform vec3 diffuseMaterialColor;
+      uniform vec3 specularMaterialColor;
+
+      uniform vec3 lightPosition;
+      uniform float shininess;
+
+      varying vec3 vNorm;
+      varying vec3 vPos;
+
+      vec3 ADSLightModel( vec3 norm , vec3 pos , vec3 cameraPos ){
+
+
+        // seting up light vectors
+        vec3 normv = normalize( norm );
+        vec3 lightv = normalize( lightPosition - pos );
+        vec3 viewv = normalize( cameraPos - pos );
+        vec3 halfv = normalize( normalize( lightPosition ) + normalize( cameraPos )); 
+
+        vec3 reflectionv = reflect( -lightv , norm );
+
+
+        // Setting up colors
+        vec3 ambientColor = ambientLightColor * ambientMaterialColor;
+        vec3 diffuseColor = diffuseLightColor * diffuseMaterialColor;
+        vec3 specularColor = specularLightColor * specularMaterialColor;
+        
+        // Manipulation 
+        diffuseColor *= max( 0.0 , dot( lightv , norm ));
+
+        specularColor *= pow( max( 0.0 , dot( normv , halfv ) ),shininess) ;
+
+
+        return clamp( diffuseColor + ambientColor + specularColor , 0.0 , 1.0 );
+
+      }
+      void main(){
+
+        vec3 color = ADSLightModel( vNorm , vPos , cameraPosition );
+        gl_FragColor = vec4( color , 1.0 );
+
+      }
+
+    </script>
+
+    <script>
+
+
+      var uniforms = {
+
+        ambientLightColor:{ type:"c" , value:new THREE.Color( 0xffffff) },
+        diffuseLightColor:{ type:"c" , value:new THREE.Color( 0xffffff ) },
+        specularLightColor:{ type:"c" , value:new THREE.Color( 0xffffff ) },
+        
+        ambientMaterialColor:{ type:"c" , value:new THREE.Color( 0x000fee ) },
+        diffuseMaterialColor:{ type:"c" , value:new THREE.Color( 0xc0aa99 ) },
+        specularMaterialColor:{ type:"c" , value:new THREE.Color( 0xff0000 ) },
+
+        shininess:{ type:"f" , value:80 },
+        lightPosition:{ type:"v3" , value: new THREE.Vector3( 300 , 300 , 300 ) }
+
+      }
+
+      var camera, renderer, scene , controls;
+      
+      var vs, fs;
+
+      var geometry, material , light;
+
+
+
+      init();
+      animate();
+      function init(){
+
+        var w = window.innerWidth;
+        var h = window.innerHeight;
+
+        camera = new THREE.PerspectiveCamera( 65 , w/h , 1 , 2000 );
+        camera.position.z = 1000;
+
+        controls = new THREE.TrackballControls( camera );
+        scene = new THREE.Scene();
+
+        light = new THREE.PointLight( 0xff00ff , 3 , 1000 );
+        light.position.set( 300 , 300 ,300 );
+        scene.add( light );
+
+        lightMarker = new THREE.Mesh( 
+          new THREE.IcosahedronGeometry( 10 , 1 ),
+          new THREE.MeshBasicMaterial({ color: light.color })
+        );
+        light.add( lightMarker );
+
+        geometry = new THREE.SphereGeometry( 200, 20, 20 );
+        geometry.computeVertexNormals();
+        geometry.computeTagents();
+          
+        vs = document.getElementById('vs').textContent;
+        fs = document.getElementById('fs').textContent;
+
+        
+        material = new THREE.ShaderMaterial({
+
+          uniforms:uniforms,
+          vertexShader: vs,
+          fragmentShader: fs,
+          //shading: THREE.FlatShading
+
+        });
+       
+        mesh = new THREE.Mesh( geometry, material );
+        scene.add( mesh );
+
+        renderer = new THREE.WebGLRenderer();
+        renderer.setSize( window.innerWidth, window.innerHeight );
+
+        document.body.appendChild( renderer.domElement );
+
+
+
+      }
+
+      function animate(){
+
+        requestAnimationFrame( animate );
+        controls.update();
+        renderer.render( scene , camera );
+      }
+
+    </script>
+
+  </body>
+</html>
