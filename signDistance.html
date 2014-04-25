@@ -14,45 +14,41 @@
     <script src="lib/TrackballControls.js"></script>
     <script src="utils/TextParticles.js"></script>
     
-    <script id="vs" type="x-shader/x-vertex">
+<script id="vs" type="x-shader/x-vertex">
+attribute vec4 textCoord;
+varying vec4 vTextCoord;
+void main(){
 
-      attribute vec4 textCoord;
-      varying vec4 vTextCoord;
-      varying mat4 vMV;
-      void main(){
+  vTextCoord = textCoord;
 
-        vTextCoord = textCoord;
+  vec4 mvPos = modelViewMatrix * vec4( position, 1.0 );
+  gl_PointSize = 10000. / length( mvPos );
+  gl_Position = projectionMatrix * mvPos;
 
-        vec4 mvPos = modelViewMatrix * vec4( position, 1.0 );
-        gl_PointSize = 10000. / length( mvPos );
-        gl_Position = projectionMatrix * mvPos;
+}
+</script>
+<script id="fs" type="x-shader/x-fragment">
 
-      }
+uniform vec3 color;
+uniform sampler2D t_text;
 
+varying vec4 vTextCoord;
 
-    </script>
-    <script id="fs" type="x-shader/x-fragment">
-      uniform vec3 color;
-      uniform sampler2D t_text;
+const vec2 textSize = vec2( 16. / 512. , 16./256.);
+const float smoothing = 1.0 / 16.0;
 
-      varying vec4 vTextCoord;
-      varying mat4 vMV; 
-      
-      const vec2 textSize = vec2( 16. / 512. , 16./256.);
-      const float smoothing = 1.0 / 16.0;
-      
-      void main(){
+void main(){
 
-        vec2 newCoord = vec2( vTextCoord.x ,  vTextCoord.y );
-        vec2 sCoord =  newCoord + gl_PointCoord * vec2( .05 , .1 );
+  vec2 newCoord = vec2( vTextCoord.x ,  vTextCoord.y );
+  vec2 sCoord =  newCoord + gl_PointCoord * vec2( .05 , .1 );
 
-        float distance = texture2D(t_text , sCoord ).g;
-        float lum = smoothstep( 0.5 - smoothing , 0.5 + smoothing , distance );
-        float alpha = 1. - lum;
-        gl_FragColor = vec4( color* vec3( gl_PointCoord , 1.0 ) , alpha );
+  float distance = texture2D(t_text , sCoord ).g;
+  float lum = smoothstep( 0.5 - smoothing , 0.5 + smoothing , distance );
+  float alpha = 1. - lum;
+  gl_FragColor = vec4( color* vec3( gl_PointCoord , 1.0 ) , alpha );
 
-      }
-    </script>
+}
+</script>
 
     <script>
       
@@ -76,7 +72,7 @@
         var h = window.innerHeight;
 
         camera = new THREE.PerspectiveCamera( 65 , w/h , 1 , 2000 );
-        camera.position.z = 100;
+        camera.position.z = 400;
 
         controls = new THREE.TrackballControls( camera );
         scene = new THREE.Scene();
@@ -89,10 +85,17 @@
           fragmentShader:fs
         });
 
-        var particles = creator.createTextParticles( fs );
+        var fs_particles = creator.createTextParticles( fs );
+        var vs_particles = creator.createTextParticles( vs );
 
-        console.log( particles );
-        scene.add( particles );
+        vs_particles.position.x = -350;
+        vs_particles.position.y = 250;
+        fs_particles.position.x = -350;
+        fs_particles.position.y = 50;
+
+
+        scene.add( fs_particles );
+        scene.add( vs_particles );
         renderer = new THREE.WebGLRenderer();
         renderer.setSize( window.innerWidth, window.innerHeight );
 

@@ -14,7 +14,7 @@ var letterIndicies = {A:[1,2],B:[2,2],C:[3,2],D:[4,2],E:[5,2],F:[6,2],G:[7,2],H:
     this.pathToTexture  = params.pathToTexture  || "img/signDistance.png";
     this.letterWidth    = params.letterWidth    || 10;
     this.lineHeight     = params.lineHeight     || 12;
-    this.lineLength     = params.lineLength     || 100;
+    this.lineLength     = params.lineLength     || 80;
 
     this.vertexShader   = params.vertexShader   || null;// TODO: default
     this.fragmentShader = params.fragmentShader || null;// TODO: default
@@ -85,10 +85,12 @@ var letterIndicies = {A:[1,2],B:[2,2],C:[3,2],D:[4,2],E:[5,2],F:[6,2],G:[7,2],H:
       }
     }
 
+
     return particles;
 
   }
-  
+ 
+  // Should it be centered?
   TextParticles.prototype.createGeometry = function( particles ){
 
     var geometry = new THREE.BufferGeometry();
@@ -101,6 +103,7 @@ var letterIndicies = {A:[1,2],B:[2,2],C:[3,2],D:[4,2],E:[5,2],F:[6,2],G:[7,2],H:
 
     for( var i = 0; i < particles.length; i++ ){
     
+
       positions[ i * 3 + 0 ] = particles[i][1] * this.letterWidth;
       positions[ i * 3 + 1 ] = -particles[i][2] * this.lineHeight; 
       positions[ i * 3 + 2 ] = 0; 
@@ -139,6 +142,7 @@ var letterIndicies = {A:[1,2],B:[2,2],C:[3,2],D:[4,2],E:[5,2],F:[6,2],G:[7,2],H:
 
     var array = [ left , top , bottom , right ];
     return array
+
   }
 
   
