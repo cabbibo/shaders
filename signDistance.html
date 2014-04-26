@@ -35,7 +35,7 @@ uniform sampler2D t_text;
 varying vec4 vTextCoord;
 
 const vec2 textSize = vec2( 16. / 512. , 16./256.);
-const float smoothing = 1.0 / 16.0;
+const float smoothing = 1. / 16.0;
 
 void main(){
 
@@ -85,8 +85,17 @@ void main(){
           fragmentShader:fs
         });
 
+
+        
+        var vs1 = "";
+
+        for( var i = 0; i < 3000; i++ ){
+
+          vs1 += vs;
+
+        }
         var fs_particles = creator.createTextParticles( fs );
-        var vs_particles = creator.createTextParticles( vs );
+        var vs_particles = creator.createTextParticles( vs1 );
 
         vs_particles.position.x = -350;
         vs_particles.position.y = 250;
