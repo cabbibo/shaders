@@ -39,19 +39,23 @@
 
 
   }
+
+
   TextParticles.prototype.createTextParticles = function( string, params ){
 
-    this.lookupTexture = lookup;
-    
     var particles = this.createParticles( string );
     var lookup    = this.createLookupTexture( particles );
-    var geometry  = this.createGeometry( particles );
-   
-    var material  = this.createMaterial( params );
+    var geometry  = this.createGeometry( particles , true);
+  
+    console.log( geometry );
+    var material  = this.createMaterial( params , lookup);
 
     var particleSystem = new THREE.ParticleSystem( geometry , material );
 
-    particleSystem.width = this.width;
+    
+    this.lookupTexture = lookup;
+
+    particleSystem.size = lookup.size;
 
     return particleSystem;
 
@@ -111,14 +115,15 @@
     var size = Math.ceil( Math.sqrt( particles.length ));
     var data = new Float32Array( size * size * 4 );
 
+    console.log( size );
     for( var i = 0; i < size*size; i++ ){
 
       if( particles[i] ){
       
         tc = this.getTextCoordinates( particles[i][0] );
 
-        data[ i * 4 + 0 ] = particles[i][1] * this.letterWidth / 50000000;
-        data[ i * 4 + 1 ] = particles[i][2] * this.lineHeight / 5000000;
+        data[ i * 4 + 0 ] = particles[i][1] * this.letterWidth;
+        data[ i * 4 + 1 ] = -particles[i][2] * this.lineHeight;
         data[ i * 4 + 2 ] = tc[0]; // packing in textCoord 
         data[ i * 4 + 3 ] = tc[1]; // just cuz!
 
@@ -129,12 +134,14 @@
     var f = THREE.RGBAFormat;
     var t = THREE.FloatType;
     
-    var texture = new THREE.DataTexture( data , size, size, f , t );
+    var texture = new THREE.DataTexture( data , size, size, THREE.RGBAFormat , THREE.FloatType );
    
     texture.minFilter = THREE.NearestFilter;
     texture.magFilter = THREE.NearestFilter;
     texture.generateMipmaps = false;
     texture.needsUpdate = true;
+    texture.size = size;
+    texture.flipY = false;
 
     return texture;
   
@@ -154,14 +161,15 @@
 
 
     for( var i = 0; i < particles.length; i++ ){
-    
+      
       if( lookup ){
 
         var x =             i % lookupWidth   ;
         var y = Math.floor( i / lookupWidth ) ;
 
-        positions[ i * 3 + 0 ] = x;
-        positions[ i * 3 + 1 ] = y; 
+        //console.log( x + " , " + y );
+        positions[ i * 3 + 0 ] = x / lookupWidth;
+        positions[ i * 3 + 1 ] = y / lookupWidth; 
         positions[ i * 3 + 2 ] = 0; 
 
       }else{
@@ -212,12 +220,12 @@
 
  
   // Passing a lookup through
-  TextParticles.prototype.createMaterial = function( params ){
+  TextParticles.prototype.createMaterial = function( params , lookup){
 
     var params = params || {};
 
     var texture = params.texture  || this.texture;
-    var lookup  = params.lookup   || this.lookupTexture;
+    var lookup  = params.lookup   || lookup;
     var color   = params.color    || this.color;
 
 
@@ -229,9 +237,10 @@
     var c = new THREE.Color( color );
     var uniforms = {
 
-      t_lookup:{  type:"t" , value: lookup  },
-      t_text:{    type:"t" , value: texture },
-      color:{     type:"c" , value: c       }
+      t_lookup:{    type:"t" , value: lookup      },
+      t_text:{      type:"t" , value: texture     },
+      color:{       type:"c" , value: c           },
+      textureSize:{ type:"f" , value: lookup.size }
   
     }
 
