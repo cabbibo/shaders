@@ -45,10 +45,11 @@
 
     var particles = this.createParticles( string );
     var lookup    = this.createLookupTexture( particles );
+    var textCoord = this.createTextCoordTexture( particles );
     var geometry  = this.createGeometry( particles , true);
   
     console.log( geometry );
-    var material  = this.createMaterial( params , lookup);
+    var material  = this.createMaterial( params , lookup , textCoord );
 
     var particleSystem = new THREE.ParticleSystem( geometry , material );
 
@@ -113,19 +114,20 @@
   TextParticles.prototype.createLookupTexture = function( particles ){
 
     var size = Math.ceil( Math.sqrt( particles.length ));
+
+    var maxWidth  = 0;
+    var maxHeight = 0;
+
     var data = new Float32Array( size * size * 4 );
 
-    console.log( size );
     for( var i = 0; i < size*size; i++ ){
 
       if( particles[i] ){
       
-        tc = this.getTextCoordinates( particles[i][0] );
-
         data[ i * 4 + 0 ] = particles[i][1] * this.letterWidth;
         data[ i * 4 + 1 ] = -particles[i][2] * this.lineHeight;
-        data[ i * 4 + 2 ] = tc[0]; // packing in textCoord 
-        data[ i * 4 + 3 ] = tc[1]; // just cuz!
+        data[ i * 4 + 2 ] = 0; // packing in textCoord 
+        data[ i * 4 + 3 ] = 0; // just cuz!
 
       }
 
@@ -146,6 +148,47 @@
     return texture;
   
   }
+
+  TextParticles.prototype.createTextCoordTexture = function( particles ){
+
+    var size = Math.ceil( Math.sqrt( particles.length ));
+
+    var maxWidth  = 0;
+    var maxHeight = 0;
+
+    var data = new Float32Array( size * size * 4 );
+
+    for( var i = 0; i < size*size; i++ ){
+
+      if( particles[i] ){
+     
+        tc = this.getTextCoordinates( particles[i][0] );
+        
+        data[ i * 4 + 0 ] = tc[0];
+        data[ i * 4 + 1 ] = tc[1];
+        data[ i * 4 + 2 ] = tc[2]; // packing in textCoord 
+        data[ i * 4 + 3 ] = tc[3]; // just cuz!
+
+      }
+
+    }
+
+    var f = THREE.RGBAFormat;
+    var t = THREE.FloatType;
+    
+    var texture = new THREE.DataTexture( data , size, size, THREE.RGBAFormat , THREE.FloatType );
+   
+    texture.minFilter = THREE.NearestFilter;
+    texture.magFilter = THREE.NearestFilter;
+    texture.generateMipmaps = false;
+    texture.needsUpdate = true;
+    texture.size = size;
+    texture.flipY = false;
+
+    return texture;
+  
+  }
+
 
   TextParticles.prototype.createGeometry = function( particles , lookup ){
 
@@ -220,13 +263,14 @@
 
  
   // Passing a lookup through
-  TextParticles.prototype.createMaterial = function( params , lookup){
+  TextParticles.prototype.createMaterial = function( params , lookup , textCoord ){
 
     var params = params || {};
 
-    var texture = params.texture  || this.texture;
-    var lookup  = params.lookup   || lookup;
-    var color   = params.color    || this.color;
+    var texture   = params.texture    || this.texture;
+    var lookup    = params.lookup     || lookup;
+    var textCoord = params.textCoord  || textCoord;
+    var color     = params.color      || this.color;
 
 
     var attributes = {
@@ -237,6 +281,7 @@
     var c = new THREE.Color( color );
     var uniforms = {
 
+      t_textCoord:{ type:"t" , value: textCoord   },
       t_lookup:{    type:"t" , value: lookup      },
       t_text:{      type:"t" , value: texture     },
       color:{       type:"c" , value: c           },

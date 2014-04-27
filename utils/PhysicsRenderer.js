@@ -113,9 +113,6 @@ PhysicsRenderer.prototype.createTexturePassProgram = function(){
     texture:{  type:"t"  , value:null },
   }
 
-  console.log( this.VSPass );
-  console.log( this.FSPass );
-  
   var texturePassShader = new THREE.ShaderMaterial({
     uniforms:uniforms,
     vertexShader:this.VSPass,

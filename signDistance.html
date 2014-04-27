@@ -10,85 +10,13 @@
   <body>
 
 
+    <script src="lib/jquery.min.js"></script>
     <script src="lib/three.min.js"></script>
     <script src="lib/TrackballControls.js"></script>
     <script src="utils/TextParticles.js"></script>
     <script src="utils/PhysicsRenderer.js"></script>
+    <script src="utils/ShaderLoader.js"></script>
     
-<script id="vs" type="x-shader/x-vertex">
-attribute vec4 textCoord;
-varying vec2 vTextCoord;
-uniform sampler2D t_text;
-uniform sampler2D t_lookup;
-
-uniform float textureSize;
-
-varying vec4 vLookup;
-
-void main(){
-
-  vec2 uv =  position.xy + .5/textureSize;
-  vLookup = texture2D( t_lookup , uv );
-
-  vec3 pos = vec3( vLookup.xy , 0.0);
-  vec4 mvPos = modelViewMatrix * vec4( pos , 1.0 );
-  gl_PointSize = 10000. / length( mvPos );
-  gl_Position = projectionMatrix * mvPos;
-
-}
-</script>
-<script id="fs" type="x-shader/x-fragment">
-
-uniform vec3 color;
-uniform sampler2D t_text;
-
-varying vec2 vTextCoord;
-varying vec4 vLookup;
-
-uniform float textureSize;
-
-
-const vec2 textSize = vec2( 16. / 512. , 16./256.);
-const float smoothing = 1. / 16.0;
-
-void main(){
-
-  vec2 newCoord = vec2( vLookup.z ,  vLookup.w );//+  .5/textureSize;;
-  vec2 sCoord =  newCoord + gl_PointCoord * vec2( .05 , .1 );
-
-  float distance = texture2D(t_text , sCoord ).g;
-  float lum = smoothstep( 0.5 - smoothing , 0.5 + smoothing , distance );
-  float alpha = 1. - lum;
-  gl_FragColor = vec4(color* vec3( gl_PointCoord , 1.0 ) , alpha );
-
-}
-</script>
-
-
-<script id="fs-simulation" type="x-shader/x-fragment">
-
-  uniform sampler2D t_to;
-  uniform sampler2D t_oPos;
-  uniform sampler2D t_pos;
-
-
-  varying vec2 vUv;
-
-  void main(){
-
-    vec4 oPos = texture2D( t_oPos , vUv );
-    vec4 pos  = texture2D( t_pos  , vUv );
-    vec4 to   = texture2D( t_to   , vUv );
-
-    vec3 dif = to.xyz - pos.xyz;
-
-    vec3 newPos = pos.xyz + dif * .01;
-
-    gl_FragColor= vec4( newPos , .0);
-
-  }
-</script>
-
     <script>
       
       var uniforms;
@@ -97,14 +25,32 @@ void main(){
       
       var vs, fs;
 
+      var shaderLoader;
+
       var geometry, material , light;
 
       var vs_particles , fs_particles;
 
+      var vsPosShader;
+
       var particles;
 
-      init();
-      animate();
+      var loadCount = 0;
+      var shaderPath = 'shaders/signDistance';
+      var chunkPath  = 'shaders/shaderChunks';
+      var shaderLoader = new ShaderLoader( shaderPath , chunkPath  );
+
+      shaderLoader.endLoad = function(){
+        loadCount ++;
+        if( loadCount >= 3 ){
+          init();
+        }
+
+      }
+      shaderLoader.load( 'vs-text' , 'text'       , 'vertex'    );
+      shaderLoader.load( 'fs-text' , 'text'       , 'fragment'  );
+      shaderLoader.load( 'fs-sim'  , 'simulation' , 'fragment'  );
+
 
       function init(){
 
@@ -124,12 +70,12 @@ void main(){
         window.addEventListener( 'resize', onResize , false );
 
 
-        vs = document.getElementById('vs').textContent;
-        fs = document.getElementById('fs').textContent;
+        var vs = shaderLoader.vertexShaders.text;
+        var fs = shaderLoader.fragmentShaders.text;
 
         var creator = new TextParticles({
-          vertexShader:vs,
-          fragmentShader:fs
+          vertexShader:   vs,
+          fragmentShader: fs
         });
         
         vs_particles = creator.createTextParticles( vs );
@@ -143,13 +89,12 @@ void main(){
         scene.add( vs_particles );
         scene.add( fs_particles );
 
+        var s = vs_particles.size;
+        var vs = shaderLoader.fragmentShaders.simulation;
 
-        var fsSimulation = document.getElementById('fs-simulation').textContent;
+        vsPosShader = new PhysicsRenderer( s , vs , renderer );
 
-        console.log( vs_particles );
-        vsPosShader = new PhysicsRenderer( vs_particles.size , fsSimulation , renderer );
-
-        vsPosShader.addDebugScene( scene );
+        //vsPosShader.addDebugScene( scene );
        
 
         vsPosShader.setUniform( 't_to' , {
@@ -159,6 +104,8 @@ void main(){
 
         vs_particles.material.uniforms.t_lookup.value = vsPosShader.output;
 
+        // Get things rolling
+        animate();
       }
 
       function animate(){
