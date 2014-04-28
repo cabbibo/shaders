@@ -42,7 +42,8 @@
 
       var loadCount = 0;
       var shaderPath = 'shaders/signDistance';
-      var chunkPath  = 'shaders/shaderChunks/';
+      var chunkPath  = 'shaders/shaderChunks';
+
       var shaderLoader = new ShaderLoader( shaderPath , chunkPath );
 
       shaderLoader.endLoad = function(){
@@ -72,7 +73,7 @@
         controls.scrollX = false;
 
         controls.upperY = 0;
-        controls.lowerY = -4000;
+        controls.lowerY = -4200;
 
         controls.dampening = .8;
 

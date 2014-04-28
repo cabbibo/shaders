@@ -66,7 +66,7 @@
           var path = path.split('" class')[0];
 
           console.log( path );
-          var title = path.split('.js')[0];
+          var title = path.split("/")[1].split('.js')[0];
 
           $.ajax({
             url:pathToDir+path,

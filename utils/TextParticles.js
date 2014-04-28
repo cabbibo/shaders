@@ -279,13 +279,15 @@
 
    
     var c = new THREE.Color( color );
+    var windowSize = new THREE.Vector2( window.innerWidth , window.innerHeight );
     var uniforms = {
 
       t_textCoord:{ type:"t" , value: textCoord   },
       t_lookup:{    type:"t" , value: lookup      },
       t_text:{      type:"t" , value: texture     },
       color:{       type:"c" , value: c           },
-      textureSize:{ type:"f" , value: lookup.size }
+      textureSize:{ type:"f" , value: lookup.size },
+      windowSize:{ type:"v2" , value: windowSize }
   
     }
 
