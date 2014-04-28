@@ -48,7 +48,6 @@
     var textCoord = this.createTextCoordTexture( particles );
     var geometry  = this.createGeometry( particles , true);
   
-    console.log( geometry );
     var material  = this.createMaterial( params , lookup , textCoord );
 
     var particleSystem = new THREE.ParticleSystem( geometry , material );
