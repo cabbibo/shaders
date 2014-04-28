@@ -1,19 +1,29 @@
-  uniform sampler2D t_to;
-  uniform sampler2D t_oPos;
-  uniform sampler2D t_pos;
+uniform sampler2D t_to;
+uniform sampler2D t_oPos;
+uniform sampler2D t_pos;
 
-  varying vec2 vUv;
+uniform float timer;
 
-  void main(){
+varying vec2 vUv;
 
-    vec4 oPos = texture2D( t_oPos , vUv );
-    vec4 pos  = texture2D( t_pos  , vUv );
-    vec4 to   = texture2D( t_to   , vUv );
+//$simplex
 
-    vec3 dif = to.xyz - pos.xyz;
+void main(){
 
-    vec3 newPos = pos.xyz + dif * .01;
+  vec4 oPos = texture2D( t_oPos , vUv );
+  vec4 pos  = texture2D( t_pos  , vUv );
+  vec4 to   = texture2D( t_to   , vUv );
 
-    gl_FragColor= vec4( newPos , .0);
+  vec2 offset = vec2( timer * 10. , timer * 10.  );
+  //float displace = snoise( (to.xy + offset ) * .01 );
 
-  }
+  float displace = .4;
+  vec3 newTo = to.xyz + vec3( 0. , 0. , displace * 5. );
+
+  vec3 dif = newTo.xyz - pos.xyz;
+
+  vec3 newPos = pos.xyz + dif * .1;
+
+  gl_FragColor= vec4( newPos , .0);
+
+}

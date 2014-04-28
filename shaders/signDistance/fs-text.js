@@ -6,8 +6,6 @@ varying vec4 vLookup;
 
 uniform float textureSize;
 
-$simplex
-
 const vec2 textSize = vec2( 16. / 512. , 16./256.);
 const float smoothing = 1. / 16.0;
 

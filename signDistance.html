@@ -12,7 +12,7 @@
 
     <script src="lib/jquery.min.js"></script>
     <script src="lib/three.min.js"></script>
-    <script src="lib/TrackballControls.js"></script>
+    <script src="lib/ScrollControls.js"></script>
     <script src="utils/TextParticles.js"></script>
     <script src="utils/PhysicsRenderer.js"></script>
     <script src="utils/ShaderLoader.js"></script>
@@ -21,6 +21,8 @@
       
       var uniforms;
       var texture;
+
+      var clock;
       var camera, renderer, scene , controls;
       
       var vs, fs;
@@ -31,14 +33,16 @@
 
       var vs_particles , fs_particles;
 
-      var vsPosShader;
+      var vsTextPosShader;
 
       var particles;
+
+      var timer = { type:"f" , value:0 }
 
       var loadCount = 0;
       var shaderPath = 'shaders/signDistance';
       var chunkPath  = 'shaders/shaderChunks';
-      var shaderLoader = new ShaderLoader( shaderPath , chunkPath  );
+      var shaderLoader = new ShaderLoader( shaderPath );
 
       shaderLoader.endLoad = function(){
         loadCount ++;
@@ -47,6 +51,7 @@
         }
 
       }
+      
       shaderLoader.load( 'vs-text' , 'text'       , 'vertex'    );
       shaderLoader.load( 'fs-text' , 'text'       , 'fragment'  );
       shaderLoader.load( 'fs-sim'  , 'simulation' , 'fragment'  );
@@ -57,8 +62,11 @@
         var w = window.innerWidth;
         var h = window.innerHeight;
 
+        clock = new THREE.Clock();
+
         camera = new THREE.PerspectiveCamera( 65 , w/h , 1 , 2000 );
         camera.position.z = 400;
+
 
         controls = new THREE.TrackballControls( camera );
         scene = new THREE.Scene();
@@ -70,8 +78,9 @@
         window.addEventListener( 'resize', onResize , false );
 
 
-        var vs = shaderLoader.vertexShaders.text;
-        var fs = shaderLoader.fragmentShaders.text;
+        var vs  = shaderLoader.vertexShaders.text;
+        var fs  = shaderLoader.fragmentShaders.text;
+        var sim = shaderLoader.fragmentShaders.simulation;
 
         var creator = new TextParticles({
           vertexShader:   vs,
@@ -79,40 +88,77 @@
         });
         
         vs_particles = creator.createTextParticles( vs );
+        sim_particles = creator.createTextParticles( sim );
         fs_particles = creator.createTextParticles( fs );
+        //sim_particles = creator.createTextParticles( sim );
         
         vs_particles.position.x = -350;
         vs_particles.position.y = 250;
         fs_particles.position.x = -350;
         fs_particles.position.y = -50;
+        sim_particles.position.x = -350;
+        sim_particles.position.y = -300;
 
         scene.add( vs_particles );
         scene.add( fs_particles );
+        scene.add( sim_particles );
+
 
         var s = vs_particles.size;
-        var vs = shaderLoader.fragmentShaders.simulation;
+        var simShader = shaderLoader.fragmentShaders.simulation;
 
-        vsPosShader = new PhysicsRenderer( s , vs , renderer );
-
-        //vsPosShader.addDebugScene( scene );
-       
-
-        vsPosShader.setUniform( 't_to' , {
+        vsTextPosShader = new PhysicsRenderer( s , simShader , renderer );
+        vsTextPosShader.setUniform( 't_to' , {
           type:"t",
           value:vs_particles.material.uniforms.t_lookup.value
         });
 
-        vs_particles.material.uniforms.t_lookup.value = vsPosShader.output;
+        vsTextPosShader.setUniform( 'timer' , timer );
+        vs_particles.material.uniforms.t_lookup.value = vsTextPosShader.output;
+
+
+        var s = fs_particles.size;
+        var simShader = shaderLoader.fragmentShaders.simulation;
+
+        fsTextPosShader = new PhysicsRenderer( s , simShader , renderer );
+        fsTextPosShader.setUniform( 't_to' , {
+          type:"t",
+          value:fs_particles.material.uniforms.t_lookup.value
+        });
+
+        fsTextPosShader.setUniform( 'timer' , timer );
+        fs_particles.material.uniforms.t_lookup.value = fsTextPosShader.output;
+
+
+        var s = sim_particles.size;
+        var simShader = shaderLoader.fragmentShaders.simulation;
+
+        simTextPosShader = new PhysicsRenderer( s , simShader , renderer );
+        simTextPosShader.setUniform( 't_to' , {
+          type:"t",
+          value:sim_particles.material.uniforms.t_lookup.value
+        });
+
+        simTextPosShader.setUniform( 'timer' , timer );
+        sim_particles.material.uniforms.t_lookup.value = simTextPosShader.output;
 
         // Get things rolling
         animate();
+      
       }
 
       function animate(){
 
-        vsPosShader.update();
-        vs_particles.material.uniforms.t_lookup.value = vsPosShader.output;
+        timer.value += clock.getDelta();
+        
+        vsTextPosShader.update();
+        vs_particles.material.uniforms.t_lookup.value = vsTextPosShader.output;
 
+        fsTextPosShader.update();
+        fs_particles.material.uniforms.t_lookup.value = fsTextPosShader.output;
+         
+        simTextPosShader.update();
+        sim_particles.material.uniforms.t_lookup.value = simTextPosShader.output;
 
         requestAnimationFrame( animate );
         controls.update();

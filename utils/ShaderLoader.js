@@ -14,7 +14,6 @@
 
   }
 
-
   /*
    
      Good god, this is uncouth.
@@ -33,7 +32,13 @@
 
     this.readyToLoad = false;
     this.loadedChunks= 0;
-   
+ 
+    if( !pathToDir ){
+
+      this.readyToLoad = true;
+      return
+
+    }
     var self = this;
     $.ajax({
       url:pathToDir,
@@ -45,6 +50,12 @@
         // Saves the total number of shaderChunks
         // we are going to load
         self.numberOfShaderChunks = newText.length - 2;
+        
+        if( self.numberOfShaderChunks == 0 ){
+
+          console.log( 'no shader chunks loaded' );
+
+        }
 
         for( var i = 2; i < newText.length; i++ ){
 
@@ -79,7 +90,7 @@
     this.loadedChunks ++;
 
     if( this.loadedChunks == this.numberOfShaderChunks ){
-      this.ready = true;
+      this.readyToLoad = true;
     }
 
   }
@@ -97,7 +108,7 @@
  
     var self = this;
 
-    if( !this.ready ){
+    if( !this.readyToLoad ){
       setTimeout(function(){
         self.load( shader , title , type ) 
       }, 100 );
