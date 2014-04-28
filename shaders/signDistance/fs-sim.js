@@ -30,7 +30,8 @@ void main(){
 
 
   vel += dif * .1 ;
-  vel.y += (((displace * .4)+.5)/5.) * speed.y;
+  vel.y += (((displace * .2)+.5)/5.) * speed.y;
+  //vel.y += (((abs(displace) * .2)+.1)/3.) * speed.y;
 
 
   vec3 newPos = pos.xyz + vel * (( displace + 5.)/10.);

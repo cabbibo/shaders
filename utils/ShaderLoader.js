@@ -36,10 +36,11 @@
     if( !pathToDir ){
 
       this.readyToLoad = true;
-      return
+      return;
 
     }
     var self = this;
+    
     $.ajax({
       url:pathToDir,
       dataType:'text',
@@ -57,12 +58,15 @@
 
         }
 
+        console.log( newText );
+
         for( var i = 2; i < newText.length; i++ ){
 
           var path = newText[i].split('href="/'+pathToDir)[1];
           var path = path.split('" class')[0];
 
-          var title = path.split('/')[1].split('.js')[0];
+          console.log( path );
+          var title = path.split('.js')[0];
 
           $.ajax({
             url:pathToDir+path,

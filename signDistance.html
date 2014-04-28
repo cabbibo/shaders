@@ -2,7 +2,8 @@
 
   <head>
     <style>
-      html{margin:0px;background:#000;overflow:hidden;}
+      html{margin:0px;background:#fff;overflow:hidden;}
+      body{margin:0px;background:#fff;overflow:hidden;}
       #container{ position:absolute; left:0px; top:0px; }
     </style>
   </head>
@@ -41,7 +42,7 @@
 
       var loadCount = 0;
       var shaderPath = 'shaders/signDistance';
-      var chunkPath  = 'shaders/shaderChunks';
+      var chunkPath  = 'shaders/shaderChunks/';
       var shaderLoader = new ShaderLoader( shaderPath , chunkPath );
 
       shaderLoader.endLoad = function(){
@@ -96,12 +97,13 @@
         vs_particles = creator.createTextParticles( vs );
         sim_particles = creator.createTextParticles( sim );
         fs_particles = creator.createTextParticles( fs );
-        //sim_particles = creator.createTextParticles( sim );
         
         vs_particles.position.x = -350;
         vs_particles.position.y = 250;
+        
         fs_particles.position.x = -350;
         fs_particles.position.y = -50;
+        
         sim_particles.position.x = -350;
         sim_particles.position.y = -300;
 
