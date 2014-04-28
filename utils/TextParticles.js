@@ -271,22 +271,28 @@
     var textCoord = params.textCoord  || textCoord;
     var color     = params.color      || this.color;
 
-
     var attributes = {
       textCoord: { type:"v4" , value: null },
     }
 
    
     var c = new THREE.Color( color );
+
     var windowSize = new THREE.Vector2( window.innerWidth , window.innerHeight );
+    var dpr       = window.devicePixelRatio || 1;
+
+    console.log( dpr );
+
     var uniforms = {
 
-      t_textCoord:{ type:"t" , value: textCoord   },
-      t_lookup:{    type:"t" , value: lookup      },
-      t_text:{      type:"t" , value: texture     },
-      color:{       type:"c" , value: c           },
-      textureSize:{ type:"f" , value: lookup.size },
-      windowSize:{ type:"v2" , value: windowSize }
+      t_textCoord:{ type:"t"  , value: textCoord    },
+      t_lookup:{    type:"t"  , value: lookup       },
+      t_text:{      type:"t"  , value: texture      },
+      color:{       type:"c"  , value: c            },
+      textureSize:{ type:"f"  , value: lookup.size  },
+      windowSize:{  type:"v2" , value: windowSize   },
+      dpr:{         type:"f"  , value: dpr          },
+      
   
     }
 

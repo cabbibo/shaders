@@ -2,6 +2,7 @@ uniform sampler2D t_text;
 uniform sampler2D t_lookup;
 uniform sampler2D t_textCoord;
 uniform float textureSize;
+uniform float dpr;
 uniform vec2 windowSize;
 
 varying vec4 vLookup;
@@ -15,7 +16,7 @@ void main(){
 
   vec3 pos =vLookup.xyz;
   vec4 mvPos = modelViewMatrix * vec4( pos , 1.0 );
-  gl_PointSize = (windowSize.x * 15.) / length( mvPos );
+  gl_PointSize = (windowSize.x * 5. * dpr) / length( mvPos );
   gl_Position = projectionMatrix * mvPos;
 
 }
