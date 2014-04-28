@@ -42,14 +42,13 @@
       var loadCount = 0;
       var shaderPath = 'shaders/signDistance';
       var chunkPath  = 'shaders/shaderChunks';
-      var shaderLoader = new ShaderLoader( shaderPath );
+      var shaderLoader = new ShaderLoader( shaderPath , chunkPath );
 
       shaderLoader.endLoad = function(){
         loadCount ++;
         if( loadCount >= 3 ){
           init();
         }
-
       }
       
       shaderLoader.load( 'vs-text' , 'text'       , 'vertex'    );
@@ -68,7 +67,14 @@
         camera.position.z = 400;
 
 
-        controls = new THREE.TrackballControls( camera );
+        controls = new THREE.ScrollControls( camera );
+        controls.scrollX = false;
+
+        controls.upperY = 0;
+        controls.lowerY = -4000;
+
+        controls.dampening = .8;
+
         scene = new THREE.Scene();
          
         renderer = new THREE.WebGLRenderer();
@@ -107,12 +113,15 @@
         var s = vs_particles.size;
         var simShader = shaderLoader.fragmentShaders.simulation;
 
+        var speedUniform = { type:"v3" , value: camera.velocity }
+
         vsTextPosShader = new PhysicsRenderer( s , simShader , renderer );
         vsTextPosShader.setUniform( 't_to' , {
           type:"t",
           value:vs_particles.material.uniforms.t_lookup.value
         });
 
+        vsTextPosShader.setUniform( 'speed' , speedUniform );
         vsTextPosShader.setUniform( 'timer' , timer );
         vs_particles.material.uniforms.t_lookup.value = vsTextPosShader.output;
 
@@ -126,6 +135,7 @@
           value:fs_particles.material.uniforms.t_lookup.value
         });
 
+        fsTextPosShader.setUniform( 'speed' , speedUniform );
         fsTextPosShader.setUniform( 'timer' , timer );
         fs_particles.material.uniforms.t_lookup.value = fsTextPosShader.output;
 
@@ -139,6 +149,7 @@
           value:sim_particles.material.uniforms.t_lookup.value
         });
 
+        simTextPosShader.setUniform( 'speed' , speedUniform );
         simTextPosShader.setUniform( 'timer' , timer );
         sim_particles.material.uniforms.t_lookup.value = simTextPosShader.output;
 

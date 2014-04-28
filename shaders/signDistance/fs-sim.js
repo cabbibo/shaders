@@ -3,10 +3,11 @@ uniform sampler2D t_oPos;
 uniform sampler2D t_pos;
 
 uniform float timer;
+uniform vec3 speed;
 
 varying vec2 vUv;
 
-//$simplex
+$simplex
 
 void main(){
 
@@ -16,13 +17,23 @@ void main(){
 
   vec2 offset = vec2( timer * 10. , timer * 10.  );
   //float displace = snoise( (to.xy + offset ) * .01 );
+  float displace = snoise( to.xy * .01 );
 
-  float displace = .4;
-  vec3 newTo = to.xyz + vec3( 0. , 0. , displace * 5. );
+  vec3 newTo = to.xyz; //+ vec3( 0. , 0. , displace * 20. );
 
+  vec3 vel = pos.xyz - oPos.xyz;
   vec3 dif = newTo.xyz - pos.xyz;
+ 
+  //vec3 vel 
+  
+ // dif.y += speed.y * 1.;
 
-  vec3 newPos = pos.xyz + dif * .1;
+
+  vel += dif * .1 ;
+  vel.y += (((displace * .4)+.5)/5.) * speed.y;
+
+
+  vec3 newPos = pos.xyz + vel * (( displace + 5.)/10.);
 
   gl_FragColor= vec4( newPos , .0);
 
