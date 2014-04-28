@@ -49,13 +49,14 @@
       shaderLoader.endLoad = function(){
         loadCount ++;
         if( loadCount >= 3 ){
+          console.log('hello');
           init();
         }
       }
       
-      shaderLoader.load( 'vs-text' , 'text'       , 'vertex'    );
-      shaderLoader.load( 'fs-text' , 'text'       , 'fragment'  );
-      shaderLoader.load( 'fs-sim'  , 'simulation' , 'fragment'  );
+      shaderLoader.load( 'vs-text' , 'text'         , 'vertex'    );
+      shaderLoader.load( 'fs-text' , 'text'         , 'fragment'  );
+      shaderLoader.load( 'fs-sim'  , 'textPhysics'  , 'simulation');
 
 
       function init(){
@@ -88,12 +89,17 @@
 
         var vs  = shaderLoader.vertexShaders.text;
         var fs  = shaderLoader.fragmentShaders.text;
-        var sim = shaderLoader.fragmentShaders.simulation;
+        var sim = shaderLoader.simulationShaders.textPhysics;
 
         var creator = new TextParticles({
           vertexShader:   vs,
           fragmentShader: fs
         });
+
+        console.log( 'STRINGS' );
+        console.log( vs );
+        console.log( fs );
+        console.log( sim );
         
         vs_particles = creator.createTextParticles( vs );
         sim_particles = creator.createTextParticles( sim );
@@ -114,7 +120,7 @@
 
 
         var s = vs_particles.size;
-        var simShader = shaderLoader.fragmentShaders.simulation;
+        var simShader = shaderLoader.simulationShaders.textPhysics;
 
         var speedUniform = { type:"v3" , value: camera.velocity }
 
@@ -130,7 +136,6 @@
 
 
         var s = fs_particles.size;
-        var simShader = shaderLoader.fragmentShaders.simulation;
 
         fsTextPosShader = new PhysicsRenderer( s , simShader , renderer );
         fsTextPosShader.setUniform( 't_to' , {
@@ -144,7 +149,6 @@
 
 
         var s = sim_particles.size;
-        var simShader = shaderLoader.fragmentShaders.simulation;
 
         simTextPosShader = new PhysicsRenderer( s , simShader , renderer );
         simTextPosShader.setUniform( 't_to' , {

@@ -4,122 +4,80 @@
   // with regex inside the shader
   function ShaderLoader( pathToShaders , pathToChunks ){
 
-    this.fragmentShaders  = {};
-    this.vertexShaders    = {};
+    this.fragmentShaders    = {};
+    this.vertexShaders      = {};
+    this.simulationShaders  = {};
 
-    this.pathToShaders    = pathToShaders;
-    this.pathToChunks     = pathToChunks;
-
-    this.loadShaderChunks( pathToChunks );
-
-  }
-
-  /*
-   
-     Good god, this is uncouth.
-
-     Does the following:
-     
-     - Ajax Calls a folder, which returns a string of html
-     - that string is parsed for the chunk path names
-     - Each chunk than gets an ajax call
-     - once it gets loaded, we call an 'onChunkLoaded'
-     - this adds it to our shaderChunks, and lets us know
-       when we are prepared to start loading shaders
-
-  */
-  ShaderLoader.prototype.loadShaderChunks = function( pathToDir ){
-
-    this.readyToLoad = false;
-    this.loadedChunks= 0;
- 
-    if( !pathToDir ){
-
-      this.readyToLoad = true;
-      return;
-
-    }
-    var self = this;
-    
-    $.ajax({
-      url:pathToDir,
-      dataType:'text',
-      complete: function(r){
-
-        var newText = r.responseText.split( '<li>' );
-
-        // Saves the total number of shaderChunks
-        // we are going to load
-        self.numberOfShaderChunks = newText.length - 2;
-        
-        if( self.numberOfShaderChunks == 0 ){
-
-          console.log( 'no shader chunks loaded' );
-
-        }
-
-        console.log( newText );
-
-        for( var i = 2; i < newText.length; i++ ){
-
-          var path = newText[i].split('href="/'+pathToDir)[1];
-          var path = path.split('" class')[0];
-
-          console.log( path );
-          var title = path.split("/")[1].split('.js')[0];
-
-          $.ajax({
-            url:pathToDir+path,
-            dataType:'text',
-            context: {
-              title: title
-            },
-            complete: function(r){
-              self.onChunkLoaded( r.responseText , this.title ); 
-            }
-          });
-
-        }
-
-      }
-    });
+    this.pathToShaders    = pathToShaders || "/" ;
+    this.pathToChunks     = pathToChunks || pathToShaders;
 
     this.shaderChunks = {};
 
+   // this.loadShaderChunks( pathToChunks );
+
   }
 
+
+
+  /*
+   
+     Loads in a shader chunk when told to by
+     onShaderLoaded.
+
+     it is important to know that the title of the
+     chunk needs to be the same as the reference in the shader
+
+     AKA, if I use:
+
+     $simplexNoise
+
+     I will need to create a file in the pathToChunks directory
+     called
+
+     simplexNoise.js
+
+
+  */
+  ShaderLoader.prototype.loadShaderChunk = function( type ){
+
+    var path = this.pathToChunks + "/" + type + ".js";
+
+    var self = this;
+    $.ajax({
+      url:path,
+      dataType:'text',
+      context:{
+        title:type,
+        path: path
+      },
+      complete: function( r ){
+        self.onChunkLoaded( r.responseText , this.title );
+      },
+      error:function( r ){
+        console.log( 'ERROR: Unable to Load Shader' + this.path );
+        self.onChunkLoaded( " NO SHADER LOADED " , this.title );
+      }
+    });
+
+  }
+  
   ShaderLoader.prototype.onChunkLoaded = function( chunk , title ){
 
     this.shaderChunks[title] = chunk;
-    this.loadedChunks ++;
-
-    if( this.loadedChunks == this.numberOfShaderChunks ){
-      this.readyToLoad = true;
-    }
-
+    
   }
   
   /*
   
      This function Loads a shader with whatever title/
-     type we prefer. It is important to note that if the 
-     shader chunks have not been loaded, the function will
-     set a timeout to refire until the shaders are ready
-
+     type we prefer. 
 
   */
   ShaderLoader.prototype.load = function( shader , title , type ){
  
     var self = this;
 
-    if( !this.readyToLoad ){
-      setTimeout(function(){
-        self.load( shader , title , type ) 
-      }, 100 );
-      return;
-    }
-
-    this.beginLoad();
+        this.beginLoad();
 
 
     // request the file over AJAX
@@ -136,29 +94,63 @@
 
   }
 
+  /*
+   
+     Once a Shader is loaded, check to see if there are any extra chunks 
+     we need to find and pull in. 
+
+     Will recall itself, until the chunk has been loaded in
+
+  */
   ShaderLoader.prototype.onShaderLoaded = function( shaderText , title , type ){
 
     var finalShader = shaderText;
+    
+    var readyToLoad = true;
 
-    for( propt in this.shaderChunks ){
 
-      var parse = "$" + propt;
+    var array = finalShader.split( "$" );
 
-      var array = finalShader.split( parse );
-      
-      if( array.length > 1 ){
-        finalShader = array.join( this.shaderChunks[propt] );
+    for( var i = 1; i < array.length; i++ ){
+
+      var chunkName = array[i].split("\n")[0];
+      console.log( chunkName );
+
+      if( this.shaderChunks[chunkName] ){
+
+        var tmpShader = finalShader.split( "$" + chunkName );
+
+        finalShader = tmpShader.join( this.shaderChunks[chunkName] );
+
+      }else{
+
+        readyToLoad = false;
+        this.loadShaderChunk( chunkName );
+
       }
 
     }
-    
-    if( type == 'vertex' ){
-      this.vertexShaders[ title ] = finalShader;
-    }else{
-      this.fragmentShaders[ title ] = finalShader;
-    }
 
-    this.endLoad();
+    if( readyToLoad ){    
+     
+      if( type == 'vertex' ){
+        this.vertexShaders[ title ] = finalShader;
+      }else if( type == 'fragment' ){
+        this.fragmentShaders[ title ] = finalShader;
+      }else if( type == 'simulation' ){
+        this.simulationShaders[ title ] = finalShader;
+      }
+
+      this.endLoad();
+
+    }else{
+
+      var self = this;
+      setTimeout( function(){
+        self.onShaderLoaded( finalShader , title , type )
+      }, 300 );
+
+    }
 
   }
 
