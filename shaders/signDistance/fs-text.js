@@ -18,6 +18,9 @@ void main(){
   float distance = texture2D(t_text , sCoord ).g;
   float lum = smoothstep( 0.5 - smoothing , 0.5 + smoothing , distance );
   float alpha = 1. - lum;
-  gl_FragColor = vec4(color* normalize(vec3(1. - abs(vLookup.w) , .3 ,abs(vLookup.w)) ) , alpha );
+
+  float simplex = abs(vLookup.w);
+  float mult = .5+ simplex * .5;
+  gl_FragColor = vec4(color* mult , alpha );
 
 }

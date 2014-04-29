@@ -266,10 +266,13 @@
 
     var params = params || {};
 
-    var texture   = params.texture    || this.texture;
-    var lookup    = params.lookup     || lookup;
-    var textCoord = params.textCoord  || textCoord;
-    var color     = params.color      || this.color;
+    var texture     = params.texture      || this.texture;
+    var lookup      = params.lookup       || lookup;
+    var textCoord   = params.textCoord    || textCoord;
+    var color       = params.color        || this.color;
+    var letterWidth = params.letterWidth  || this.letterWidth;
+
+    console.log( letterWidth );
 
     var attributes = {
       textCoord: { type:"v4" , value: null },
@@ -291,6 +294,7 @@
       color:{       type:"c"  , value: c            },
       textureSize:{ type:"f"  , value: lookup.size  },
       windowSize:{  type:"v2" , value: windowSize   },
+      letterWidth:{ type:"f"  , value: letterWidth  },
       dpr:{         type:"f"  , value: dpr          },
       
   
